@@ -1,8 +1,7 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_migrate import Migrate
-from .models import db, User
+from .models import User
+from .supabase_config import get_supabase_manager
 import os
 from dotenv import load_dotenv
 
@@ -11,9 +10,16 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_pyfile('config.py')
     
-    # Initialize extensions
-    db.init_app(app)
-    migrate = Migrate(app, db)
+    # Initialize Supabase
+    try:
+        supabase_manager = get_supabase_manager()
+        app.logger.info("Supabase connection established")
+    except Exception as e:
+        app.logger.error(f"Failed to initialize Supabase: {e}")
+        app.logger.info("Running in development mode without database - set SUPABASE_URL and SUPABASE_ANON_KEY for full functionality")
+        # Continue without Supabase for development/testing
+    
+    # Initialize Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
@@ -27,14 +33,14 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
-
-    # Create database tables if they don't exist (for deployment)
-    with app.app_context():
         try:
-            db.create_all()
+            supabase_manager = get_supabase_manager()
+            user_data = supabase_manager.get_user_by_id(int(user_id))
+            if user_data:
+                return User.from_dict(user_data)
+            return None
         except Exception as e:
-            # Log the error but don't fail the app startup
-            print(f"Database initialization warning: {e}")
+            app.logger.error(f"Error loading user: {e}")
+            return None
 
     return app 

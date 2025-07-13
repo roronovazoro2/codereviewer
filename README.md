@@ -14,11 +14,11 @@ A Flask-based web application that provides AI-powered code review and analysis 
 
 ## Tech Stack
 
-- **Backend**: Flask, SQLAlchemy, Flask-Login
-- **Database**: PostgreSQL (production), SQLite (development)
+- **Backend**: Flask, Flask-Login
+- **Database**: Supabase (PostgreSQL)
 - **AI**: Google Gemini AI
-- **Deployment**: Railway
-- **WSGI Server**: Gunicorn
+- **Deployment**: Vercel (Serverless)
+- **Development**: Mock database for local testing
 
 ## Local Development
 
@@ -47,61 +47,53 @@ A Flask-based web application that provides AI-powered code review and analysis 
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables**
+4. **Set up environment variables (Optional)**
    ```bash
    cp env.example .env
    # Edit .env with your actual values
    ```
 
-5. **Initialize database**
-   ```bash
-   python manage.py init-db
-   python manage.py migrate-db
-   ```
-
-6. **Run the application**
+5. **Run the application**
    ```bash
    python run.py
    ```
 
 The application will be available at `http://localhost:5000`
 
-## Deployment to Railway
+**Note**: For local development, the app uses a mock database. No external database setup is required.
+
+## Deployment to Vercel
 
 ### Prerequisites
 
-- Railway account
+- Vercel account
 - GitHub repository with your code
+- Supabase account and project
 - Google Gemini API key
 
 ### Deployment Steps
 
-1. **Prepare your repository**
-   - Ensure all files are committed to GitHub
-   - Verify `requirements.txt`, `Procfile`, and `runtime.txt` are present
+1. **Set up Supabase Database**
+   - Create a Supabase project at [supabase.com](https://supabase.com)
+   - Run the SQL script from `supabase_setup.sql` in the SQL Editor
+   - Get your project URL and anon key from Settings → API
 
-2. **Deploy to Railway**
-   - Go to [railway.app](https://railway.app)
-   - Click "New Project" → "Deploy from GitHub repo"
-   - Connect your GitHub account and select your repository
-   - Railway will automatically detect it's a Python project
+2. **Deploy to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project" → Import your Git repository
+   - Vercel will automatically detect the configuration
 
 3. **Configure Environment Variables**
-   In Railway dashboard, add these variables:
+   In Vercel dashboard, add these variables:
    ```
-   SECRET_KEY=your-super-secret-key-here
+   SUPABASE_URL=your-supabase-project-url
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   GEMINI_API_KEY=your-gemini-api-key
+   SECRET_KEY=your-secret-key
    FLASK_ENV=production
-   GEMINI_API_KEY=your-gemini-api-key-here
    ```
 
-4. **Set up Database**
-   - In Railway dashboard, click "New" → "Database" → "PostgreSQL"
-   - Railway will automatically set `DATABASE_URL`
-
-5. **Run Database Setup**
-   - Go to your project's "Settings" → "Variables"
-   - Add a custom domain if needed
-   - The app will automatically create tables on first run
+For detailed deployment instructions, see `VERCEL_DEPLOYMENT.md`.
 
 ### Environment Variables
 
@@ -109,33 +101,22 @@ The application will be available at `http://localhost:5000`
 |----------|-------------|----------|
 | `SECRET_KEY` | Flask secret key for sessions | Yes |
 | `FLASK_ENV` | Environment (production/development) | Yes |
-| `DATABASE_URL` | PostgreSQL connection string | Auto-set by Railway |
+| `SUPABASE_URL` | Supabase project URL | Yes (production) |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key | Yes (production) |
 | `GEMINI_API_KEY` | Google Gemini API key | Yes |
-| `PORT` | Port for the application | Auto-set by Railway |
-
-### Management Commands
-
-```bash
-# Initialize database
-python manage.py init-db
-
-# Run migrations
-python manage.py migrate-db
-
-# Create admin user
-python manage.py create-admin
-
-# Setup for deployment
-python manage.py deploy-setup
-```
 
 ## Project Structure
 
 ```
 codereviewer-project/
+├── api/
+│   ├── index.py           # Vercel serverless function
+│   └── requirements.txt   # Python dependencies for API
 ├── app/
 │   ├── __init__.py          # Flask app factory
-│   ├── models.py            # Database models
+│   ├── models.py            # Data models
+│   ├── supabase_config.py   # Supabase connection manager
+│   ├── dev_config.py        # Mock database for development
 │   ├── routes/              # Route blueprints
 │   │   ├── auth.py          # Authentication routes
 │   │   ├── dashboard.py     # Dashboard routes
@@ -145,12 +126,9 @@ codereviewer-project/
 │       └── ai_utils.py      # AI analysis utilities
 ├── instance/
 │   └── config.py            # Configuration
-├── migrations/              # Database migrations
+├── supabase_setup.sql       # Database schema
 ├── requirements.txt         # Python dependencies
-├── Procfile                # Railway deployment config
-├── runtime.txt             # Python version
-├── railway.json            # Railway configuration
-├── manage.py               # Management commands
+├── vercel.json             # Vercel deployment config
 └── run.py                  # Application entry point
 ```
 
